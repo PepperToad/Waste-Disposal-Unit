@@ -1,4 +1,4 @@
-Scriptname WorkshopWasteDisposal_WDU extends ObjectReference
+Scriptname WorkshopWasteDisposal_WDU extends extends DLC05:WorkshopHopperScript
 
 ; -- USER-DEFINED PROPERTIES --
 ; The keyword for all food items.
@@ -341,3 +341,4 @@ bool function IsFormInArray(Form akForm, Form[] akFormArray)
     endwhile
     return false
 endfunction
+
