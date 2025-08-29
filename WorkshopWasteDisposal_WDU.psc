@@ -1,10 +1,15 @@
 Scriptname WorkshopWasteDisposal_WDU extends DLC05:WorkshopHopperScript
 
-; Properties for the script. These are now hard-coded.
+; ====================================================================================================
+; === PROPERTIES =====================================================================================
+; ====================================================================================================
+
+; Properties to be linked in the Creation Kit.
 Form Property FertilizerObject Auto Const
 Keyword Property ObjectTypeFood Auto Const
 
 ; Hard-coded lists for food items and their fertilizer yield.
+; These properties are populated in the OnInit event.
 Form[] Property FoodList_1 Auto
 Form[] Property FoodList_2 Auto
 Form[] Property FoodList_3 Auto
@@ -14,9 +19,13 @@ Form[] Property FoodList_8 Auto
 Form[] Property FoodList_10 Auto
 Form[] Property FoodList_14 Auto
 
-; This is the main event that runs when the script is first attached.
+; ====================================================================================================
+; === EVENTS =========================================================================================
+; ====================================================================================================
+
+; This event runs once when the script is first attached.
 Event OnInit()
-    ; Initialize all lists as empty arrays.
+    ; Initialize all lists as empty arrays. This is the correct way to declare an empty array.
     FoodList_1 = new Form[0]
     FoodList_2 = new Form[0]
     FoodList_3 = new Form[0]
@@ -26,7 +35,10 @@ Event OnInit()
     FoodList_10 = new Form[0]
     FoodList_14 = new Form[0]
 
-    ; Add each form to its respective list.
+    ; Add each form to its respective list. Duplicate entries have been consolidated.
+    ; The GetFormFromFile function will return None if the file or form ID does not exist,
+    ; preventing runtime errors if a mod like ManufacturingExtended is not loaded.
+
     ; 14 Fertilizers:
     FoodList_14.Add(Game.GetFormFromFile(0x00045F1E, "Fallout4.esm")) ; Deathclaw Meat
     FoodList_14.Add(Game.GetFormFromFile(0x00033B44, "Fallout4.esm")) ; Yao Guai Meat
@@ -93,18 +105,14 @@ Event OnInit()
 
     ; 1 Fertilizer:
     FoodList_1.Add(Game.GetFormFromFile(0x00033108, "Fallout4.esm")) ; Blamco Brand Mac and Cheese
-    FoodList_1.Add(Game.GetFormFromFile(0x00018335, "Fallout4.esm")) ; Brain Fungus
     FoodList_1.Add(Game.GetFormFromFile(0x000330D6, "Fallout4.esm")) ; Bubblegum
-    FoodList_1.Add(Game.GetFormFromFile(0x000330F8, "Fallout4.esm")) ; Carrot
     FoodList_1.Add(Game.GetFormFromFile(0x000330F9, "Fallout4.esm")) ; Fresh Carrot
     FoodList_1.Add(Game.GetFormFromFile(0x00018596, "Fallout4.esm")) ; Carrot Flower
-    FoodList_1.Add(Game.GetFormFromFile(0x000330D7, "Fallout4.esm")) ; Cave Fungus
     FoodList_1.Add(Game.GetFormFromFile(0x000330FA, "Fallout4.esm")) ; Corn
     FoodList_1.Add(Game.GetFormFromFile(0x000330FB, "Fallout4.esm")) ; Fresh Corn
     FoodList_1.Add(Game.GetFormFromFile(0x0003310B, "Fallout4.esm")) ; Wild Corn
     FoodList_1.Add(Game.GetFormFromFile(0x0003310A, "Fallout4.esm")) ; Cram
     FoodList_1.Add(Game.GetFormFromFile(0x0003310D, "Fallout4.esm")) ; Dandy Boy Apples
-    FoodList_1.Add(Game.GetFormFromFile(0x00033107, "Fallout4.esm")) ; Canned Dog Food
     FoodList_1.Add(Game.GetFormFromFile(0x0002A374, "Fallout4.esm")) ; Fancy Lads Snack Cakes
     FoodList_1.Add(Game.GetFormFromFile(0x000330E0, "Fallout4.esm")) ; Mutated Fern Flower
     FoodList_1.Add(Game.GetFormFromFile(0x0002A375, "Fallout4.esm")) ; Institute Food Packet
@@ -116,12 +124,6 @@ Event OnInit()
     FoodList_1.Add(Game.GetFormFromFile(0x00033111, "Fallout4.esm")) ; Iguana On A Stick
     FoodList_1.Add(Game.GetFormFromFile(0x0002A373, "Fallout4.esm")) ; Potted Meat
     FoodList_1.Add(Game.GetFormFromFile(0x0002A37D, "Fallout4.esm")) ; Bloodbug Meat
-    FoodList_1.Add(Game.GetFormFromFile(0x0002A36E, "Fallout4.esm")) ; Cat Meat
-    FoodList_1.Add(Game.GetFormFromFile(0x000330E7, "Fallout4.esm")) ; Mirelurk Meat
-    FoodList_1.Add(Game.GetFormFromFile(0x000330E8, "Fallout4.esm")) ; Moldy Food
-    FoodList_1.Add(Game.GetFormFromFile(0x000330E9, "Fallout4.esm")) ; Mutfruit
-    FoodList_1.Add(Game.GetFormFromFile(0x000330EA, "Fallout4.esm")) ; Fresh Mutfruit
-    FoodList_1.Add(Game.GetFormFromFile(0x000330EB, "Fallout4.esm")) ; Wild Mutfruit
     FoodList_1.Add(Game.GetFormFromFile(0x0002A381, "Fallout4.esm")) ; Noodle Cup
     FoodList_1.Add(Game.GetFormFromFile(0x0002A382, "Fallout4.esm")) ; Deathclaw Egg Omelette
     FoodList_1.Add(Game.GetFormFromFile(0x000330F4, "Fallout4.esm")) ; Tasty Deathclaw Omelette
@@ -165,37 +167,32 @@ Event OnInit()
     FoodList_1.Add(Game.GetFormFromFile(0x04022836, "DLCCoast.esm")) ; Mirelurk Jerky
 EndEvent
 
-; This event fires whenever an item is added to the container.
+; This event is triggered whenever an item is added to the container.
 Event OnItemAdded(Form akBaseItem, int aiItemCount, ObjectReference akItemRef, ObjectReference akSourceContainer)
+    ; Determine the fertilizer yield for the added item.
     int yield = GetFertilizerYield(akBaseItem)
+
+    ; If the item has a positive yield, it's a food item to be processed.
     if yield > 0
-        ; Process as fertilizer
+        ; Delete the original item object reference from the game world.
         akItemRef.Delete()
+
+        ; Give the player the corresponding amount of fertilizer.
         Game.GetPlayer().AddItem(FertilizerObject, yield)
-    else
-        ; The item was not processed, so we will "release" it.
-        Self.RemoveItem(akBaseItem, 1, true, akItemRef)
-        akItemRef.MoveTo(Self, 0.0, 0.0, 50.0) ; Move item 50 units above the container
     endif
+
+    ; No else block is needed here. If the `if` condition is not met (yield is 0),
+    ; the script will simply continue without deleting the item reference. The
+    ; base `DLC05:WorkshopHopperScript` will then see the unhandled item and eject it.
 EndEvent
 
-; This event fires whenever an item is removed from the container.
-Event OnItemRemoved(Form akBaseItem, int aiItemCount, ObjectReference akItemReference, ObjectReference akDestContainer)
-    ; Reverse the effect if an item is accidentally removed.
-    int yield = GetFertilizerYield(akBaseItem)
-    if yield > 0
-        Game.GetPlayer().RemoveItem(FertilizerObject, yield)
-        ; Check if the container is empty, if it is, wait a second and reset it
-        if Self.GetItemCount(akBaseItem) == 0
-            Utility.Wait(1.0)
-            Self.Reset()
-        endif
-    endif
-EndEvent
+; ====================================================================================================
+; === FUNCTIONS ======================================================================================
+; ====================================================================================================
 
-; This function determines the fertilizer yield based on the item.
+; This function will determine the fertilizer yield based on the item.
 int Function GetFertilizerYield(Form akFood)
-    ; Check each hard-coded list to see if the item is in it.
+    ; Check each hard-coded list to find a match.
     if FoodList_1.Find(akFood) != -1
         return 1
     elseif FoodList_2.Find(akFood) != -1
@@ -214,7 +211,8 @@ int Function GetFertilizerYield(Form akFood)
         return 14
     endif
 
-    ; FAIL-SAFE: If the item was not in any of the hard-coded lists, check if it's a food item.
+    ; FAIL-SAFE: If the item was not in our hard-coded lists, check if it's
+    ; a food item at all based on the ObjectTypeFood keyword.
     if akFood.HasKeyword(ObjectTypeFood)
         return 2 ; Default to 2 fertilizer.
     else
